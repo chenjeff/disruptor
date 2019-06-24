@@ -25,38 +25,34 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * wait strategy should be considered experimental as I have not full proved the correctness of
  * the lock elision code.
  */
-public final class LiteBlockingWaitStrategy implements WaitStrategy
-{
+public final class LiteBlockingWaitStrategy implements WaitStrategy {
+
     private final Object mutex = new Object();
     private final AtomicBoolean signalNeeded = new AtomicBoolean(false);
 
     @Override
-    public long waitFor(long sequence, Sequence cursorSequence, Sequence dependentSequence, SequenceBarrier barrier)
-        throws AlertException, InterruptedException
-    {
+    public long waitFor(long sequence,
+                        Sequence cursorSequence,
+                        Sequence dependentSequence,
+                        SequenceBarrier barrier) throws AlertException, InterruptedException {
+
         long availableSequence;
-        if (cursorSequence.get() < sequence)
-        {
-            synchronized (mutex)
-            {
-                do
-                {
+        if (cursorSequence.get() < sequence) {
+            synchronized (mutex) {
+                do {
                     signalNeeded.getAndSet(true);
 
-                    if (cursorSequence.get() >= sequence)
-                    {
+                    if (cursorSequence.get() >= sequence) {
                         break;
                     }
 
                     barrier.checkAlert();
                     mutex.wait();
-                }
-                while (cursorSequence.get() < sequence);
+                } while (cursorSequence.get() < sequence);
             }
         }
 
-        while ((availableSequence = dependentSequence.get()) < sequence)
-        {
+        while ((availableSequence = dependentSequence.get()) < sequence) {
             barrier.checkAlert();
             ThreadHints.onSpinWait();
         }
@@ -65,23 +61,19 @@ public final class LiteBlockingWaitStrategy implements WaitStrategy
     }
 
     @Override
-    public void signalAllWhenBlocking()
-    {
-        if (signalNeeded.getAndSet(false))
-        {
-            synchronized (mutex)
-            {
+    public void signalAllWhenBlocking() {
+        if (signalNeeded.getAndSet(false)) {
+            synchronized (mutex) {
                 mutex.notifyAll();
             }
         }
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "LiteBlockingWaitStrategy{" +
-            "mutex=" + mutex +
-            ", signalNeeded=" + signalNeeded +
-            '}';
+                "mutex=" + mutex +
+                ", signalNeeded=" + signalNeeded +
+                '}';
     }
 }
