@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <T> the type of event used.
  */
 public class Disruptor<T> {
+
     private final RingBuffer<T> ringBuffer;
     private final Executor executor;
     private final ConsumerRepository<T> consumerRepository = new ConsumerRepository<>();
